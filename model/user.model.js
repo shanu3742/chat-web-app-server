@@ -6,7 +6,7 @@ const userSchema = new  mongoose.Schema({
         unique:[true,'please provide unique userId'],
         require:[true,'please provide userId'],
         minLength:[6,'user id must be more then 6 words'],
-        maxLength:[15,'user id must be less then 15 words']
+        maxLength:[35,'user id must be less then 35 words']
     },
     email:{
         type:String,
@@ -29,9 +29,22 @@ const userSchema = new  mongoose.Schema({
     },
     password:{
         type:String,
-        require:[true,'please provide password'],
+        required: [function () { return !this.isGoogleLogin }, 'Please provide a password'],
         minLength:[8,'password must be more then 6 words'],
         maxLength:[15,'password must be less then 15 words']
+    },
+    googleId: {
+      type: String, // To store the Google OAuth ID
+      unique: true,
+      sparse: true, // Allows multiple users to have null Google IDs
+    },
+    isGoogleLogin: {
+        type: Boolean,
+        default: false // Set true for Google login users
+    },
+    emailVerified:{
+        type: Boolean,
+        default: false // Set true for Google login users
     }
 
 },
@@ -44,7 +57,10 @@ userSchema.pre('save',async function (next){
     if(!this.isModified){
         next()
     }
-    const salt =  await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password,salt)
+    if(this.password){
+        const salt =  await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password,salt)
+    }
+   
 })
 exports.USER= mongoose.model('User',userSchema);

@@ -67,9 +67,42 @@ exports.userLogIn = async  (req,res) => {
      }
 
     }catch(e){
-        console.log(e)
         res.status(500).send({
             message:'Network Error'
         })
     }
+}
+exports.googleLogin = async (req,res) => {
+  try{
+    let googleId = req.body.googleId;
+    let userData = await USER.findOne({googleId:googleId});
+    if(!userData){
+      //create a user in data base
+      let userId = req.body.googleId;
+      let name = req.body.name;
+      let email = req.body.email;
+      let emailVerified= req.body.emailVerified;
+      let image = req.body.photoURL;
+      let isGoogleLogin=true;
+      
+      let createdUserData = await USER.create({googleId,userId,name,email,emailVerified,image,isGoogleLogin})
+      return res.status(200).json({
+        name:createdUserData.name??'Guest User',
+        userId:createdUserData.userId,
+        email:createdUserData.email
+      })
+    }else{
+      return res.status(200).json({
+        name:userData.name??'Guest User',
+        userId:userData.userId,
+        email:userData.email
+      })
+
+    }
+  }catch(e){
+    console.log(e)
+    res.status(500).send({
+      message:'Network Error'
+  })
+  }
 }
