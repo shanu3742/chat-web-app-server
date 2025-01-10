@@ -8,7 +8,12 @@ dotEnv.config()
 const app = express();
 const authRoutes = require('./routes/auth.routes');
 const { DB_CONFIG } = require('./config/db.config');
+const { limiter } = require('./rateLimiter');
 
+
+
+
+app.use('/chat/api/v1',limiter);
 
 app.use(cors());
 //add middleware 
