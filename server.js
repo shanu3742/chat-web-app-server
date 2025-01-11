@@ -9,17 +9,13 @@ const app = express();
 const authRoutes = require('./routes/auth.routes');
 const { DB_CONFIG } = require('./config/db.config');
 const { limiter } = require('./rateLimiter');
+const { headerModifier } = require('./middleware/requestHeaders.middleware');
+const { APP_CONFIG } = require('./config/app.config');
 
 
 
 //secure cors configuration 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000"); // Allow only your frontend origin
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization"); // Allow only necessary headers
-  res.header("Access-Control-Expose-Headers", "RateLimit-Limit, RateLimit-Remaining"); // Expose only non-sensitive headers
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE"); // Allow only necessary methods
-  next();
-});
+app.use(headerModifier);
 app.use('/chat/api/v1',limiter);
 
 app.use(cors());
@@ -39,7 +35,7 @@ db.once('open',() => {
 const server = https.createServer(app);
 const io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000", // Frontend URL
+      origin: APP_CONFIG.CLIENT_URL, // Frontend URL
       methods: ["GET", "POST"]
     }
   });
@@ -54,7 +50,7 @@ io.on('connection', (socket) => {
 //all routes
 app.use('/chat/api/v1/user',authRoutes)
 
-const PORT = 5000;
+const PORT = APP_CONFIG.PORT;
 server.listen(PORT, () => {
   console.log(DB_CONFIG)
   console.log(`Server running on port ${PORT}`)
