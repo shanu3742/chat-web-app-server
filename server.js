@@ -12,7 +12,14 @@ const { limiter } = require('./rateLimiter');
 
 
 
-
+//secure cors configuration 
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "http://localhost:3000"); // Allow only your frontend origin
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization"); // Allow only necessary headers
+  res.header("Access-Control-Expose-Headers", "RateLimit-Limit, RateLimit-Remaining"); // Expose only non-sensitive headers
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE"); // Allow only necessary methods
+  next();
+});
 app.use('/chat/api/v1',limiter);
 
 app.use(cors());
