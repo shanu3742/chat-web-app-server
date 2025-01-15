@@ -54,6 +54,11 @@ exports.userLogIn = async  (req,res) => {
       };
   
      let userData =  await USER.findOne(findQuery);
+     if(userData.isGoogleLogin){
+      return  res.status(403).send({
+        message:'This email is registered with Google login. Please log in using Google.'
+      })
+     }
      if(userData && await userData.matchPassword(password)){
       return res.status(200).json({
             name:userData.name??'Guest User',
@@ -68,13 +73,20 @@ exports.userLogIn = async  (req,res) => {
 
     }catch(e){
         res.status(500).send({
-            message:'Network Error'
+            message:e.message??'Network Error'
         })
     }
 }
 exports.googleLogin = async (req,res) => {
   try{
     let googleId = req.body.googleId;
+    let user= await USER.findOne({email:req.body.email}) 
+    if(user && !user.isGoogleLogin && req.body.email===user.email){
+      return  res.status(403).send({
+        message:'This email is associated with an email/password account. Please log in using the appropriate credentials.'
+      })
+    }
+
     let userData = await USER.findOne({googleId:googleId});
     if(!userData){
       //create a user in data base
