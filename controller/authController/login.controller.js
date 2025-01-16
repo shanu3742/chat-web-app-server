@@ -1,4 +1,12 @@
 const { USER } = require("../../model/user.model");
+const admin = require('firebase-admin');
+const { fbServiceKey } = require("../../serviceAccountKey");
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(fbServiceKey)
+});
+
 exports.userRegister = async (req,res) => {
     try{
       let email = req.body.email;
@@ -79,40 +87,48 @@ exports.userLogIn = async  (req,res) => {
 }
 exports.googleLogin = async (req,res) => {
   try{
-    let googleId = req.body.googleId;
-    let user= await USER.findOne({email:req.body.email}) 
-    if(user && !user.isGoogleLogin && req.body.email===user.email){
-      return  res.status(403).send({
-        message:'This email is associated with an email/password account. Please log in using the appropriate credentials.'
-      })
-    }
+  const authHeader = req.headers.authorization;
+  if(!authHeader || !authHeader.startsWith("Bearer ")){
+    return res.status(401).send({
+      message:"Unauthorized"
+    })
+  }
+  const googleToken= authHeader.split(' ')[1];
+  console.log(googleToken)
+  const decodeToken = await  admin.auth().verifyIdToken(googleToken);
+  if(!decodeToken){
+    return res.status(401).send({
+      message:"Unauthorized"
+    })
+  }
 
-    let userData = await USER.findOne({googleId:googleId});
-    if(!userData){
-      //create a user in data base
-      let userId = req.body.googleId;
-      let name = req.body.name;
-      let email = req.body.email;
-      let emailVerified= req.body.emailVerified;
-      let image = req.body.photoURL;
-      let isGoogleLogin=true;
+  const {uid:googleId,email,name,picture:image} = decodeToken;
+
+  let findQuery = {
+    $or: [
+      { googleId: { $regex: googleId, $options: 'i' } },
+      { email: { $regex: email, $options: 'i' } },
       
-      let createdUserData = await USER.create({googleId,userId,name,email,emailVerified,image,isGoogleLogin})
-      return res.status(200).json({
-        name:createdUserData.name??'Guest User',
-        userId:createdUserData.userId,
-        email:createdUserData.email
-      })
-    }else{
-      return res.status(200).json({
-        name:userData.name??'Guest User',
-        userId:userData.userId,
-        email:userData.email
-      })
+    ]
+  };
+  let userData =  await USER.findOne(findQuery);
+  if(userData){
+    return res.status(200).json({
+      name:userData.name??'Guest User',
+      userId:userData.userId??userData.googleId,
+      email:userData.email
+    })
 
-    }
+  }
+
+  let createdUserData = await USER.create({googleId,name,email,emailVerified:true,image,isGoogleLogin:true})
+  res.status(200).json({
+    name:createdUserData.name??'Guest User',
+    userId:createdUserData.userId??createdUserData.googleId,
+    email:createdUserData.email
+  })
+   
   }catch(e){
-    console.log(e)
     res.status(500).send({
       message:e.message??'Network Error'
   })
