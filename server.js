@@ -1,4 +1,5 @@
 const express = require('express');
+require('express-async-errors');
 const https = require('http');
 const {Server} =  require('socket.io');
 //restricted user to post any mongodb operator

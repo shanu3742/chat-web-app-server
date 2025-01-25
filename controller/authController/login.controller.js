@@ -1,12 +1,4 @@
 const { USER } = require("../../model/user.model");
-const admin = require('firebase-admin');
-const { fbServiceKey } = require("../../serviceAccountKey");
-
-
-admin.initializeApp({
-  credential: admin.credential.cert(fbServiceKey)
-});
-
 exports.userRegister = async (req,res) => {
     try{
       let email = req.body.email;
@@ -62,7 +54,7 @@ exports.userLogIn = async  (req,res) => {
       };
   
      let userData =  await USER.findOne(findQuery);
-     if(userData.isGoogleLogin){
+     if(userData?.isGoogleLogin){
       return  res.status(403).send({
         message:'This email is registered with Google login. Please log in using Google.'
       })
@@ -87,22 +79,9 @@ exports.userLogIn = async  (req,res) => {
 }
 exports.googleLogin = async (req,res) => {
   try{
-  const authHeader = req.headers.authorization;
-  if(!authHeader || !authHeader.startsWith("Bearer ")){
-    return res.status(401).send({
-      message:"Unauthorized"
-    })
-  }
-  const googleToken= authHeader.split(' ')[1];
-  console.log(googleToken)
-  const decodeToken = await  admin.auth().verifyIdToken(googleToken);
-  if(!decodeToken){
-    return res.status(401).send({
-      message:"Unauthorized"
-    })
-  }
+ 
 
-  const {uid:googleId,email,name,picture:image} = decodeToken;
+  const {uid:googleId,email,name,picture:image} = req.googleData;
 
   let findQuery = {
     $or: [
