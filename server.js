@@ -1,5 +1,4 @@
 const express = require('express');
-require('express-async-errors');
 const https = require('http');
 const {Server} =  require('socket.io');
 //restricted user to post any mongodb operator
@@ -17,6 +16,7 @@ const { limiter } = require('./rateLimiter');
 const { headerModifier } = require('./middleware/requestHeaders.middleware');
 const { APP_CONFIG } = require('./config/app.config');
 const { sanitizeInput } = require('./middleware/requestSanitization.middleware');
+const { errorHandler } = require('./middleware/errorHandler.middleware');
 
 
 
@@ -64,6 +64,10 @@ io.on('connection', (socket) => {
 
 //all routes
 app.use('/chat/api/v1/user',authRoutes)
+/**
+ * error handlimg
+ */
+app.use(errorHandler)
 
 const PORT = APP_CONFIG.PORT;
 server.listen(PORT, () => {

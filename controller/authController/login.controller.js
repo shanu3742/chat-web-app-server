@@ -1,15 +1,13 @@
+const { asyncHandler } = require("../../middleware/asyncHandler.middleware");
 const { USER } = require("../../model/user.model");
-exports.userRegister = async (req,res) => {
-    try{
+const MingleError = require("../../utils/CustomError");
+exports.userRegister = asyncHandler ( async (req,res) => {
       let email = req.body.email;
       let userId =req.body.userId;
       let password=req.body.password;
       if(!email || !userId || !password){
-        return res.status(400).send({
-            message:'Please Provide All Require Field'
-        })
-      }
-      
+        throw new MingleError("Please Provide All Require Field",400)
+      }     
       let userData = await USER.create({
         email,
         userId,
@@ -17,32 +15,20 @@ exports.userRegister = async (req,res) => {
       })
      
       if(userData){
-        return res.status(201).send({
-            message:'User Account Created'
-        })
+        throw new MingleError("User Account Created",400)
       }else{
-        return res.status(400).send({
-            message:'Something Went Wrong'
-        })
+        throw new MingleError("Something Went Wrong",400)
       }
-    }catch(e){
-        res.status(500).send({
-            message:'Internal Server Error',
-            db_error:e
+   
+})
 
-        })
-    }
-}
-exports.userLogIn = async  (req,res) => {
-    try{
+exports.userLogIn = asyncHandler(async (req,res) => {
      let userId = req.body?.userId??'';
      let email = req.body?.email??'';
      let password = req.body.password;
 
      if(!userId  && !email){
-        return res.status(400).send({
-            message:'Please Provide require field'
-        })
+       throw new MingleError("Please Provide require field",400)
      }
     //  $options:'i' is used  to avoid case sensitive
     let findQuery = {
@@ -55,9 +41,7 @@ exports.userLogIn = async  (req,res) => {
   
      let userData =  await USER.findOne(findQuery);
      if(userData?.isGoogleLogin){
-      return  res.status(403).send({
-        message:'This email is registered with Google login. Please log in using Google.'
-      })
+      throw new MingleError("This email is registered with Google login. Please log in using Google.",403)
      }
      if(userData && await userData.matchPassword(password)){
       return res.status(200).json({
@@ -66,21 +50,12 @@ exports.userLogIn = async  (req,res) => {
             email:userData.email
         })
      }else{
-        return  res.status(401).send({
-            message:'Invalid Credetial'
-        })
+      throw new MingleError("Invalid Credetial",401)
      }
 
-    }catch(e){
-        res.status(500).send({
-            message:e.message??'Network Error'
-        })
-    }
-}
-exports.googleLogin = async (req,res) => {
-  try{
- 
+})
 
+exports.googleLogin = asyncHandler(async (req,res) => { 
   const {uid:googleId,email,name,picture:image} = req.googleData;
 
   let findQuery = {
@@ -106,10 +81,4 @@ exports.googleLogin = async (req,res) => {
     userId:createdUserData.userId??createdUserData.googleId,
     email:createdUserData.email
   })
-   
-  }catch(e){
-    res.status(500).send({
-      message:e.message??'Network Error'
-  })
-  }
-}
+})
