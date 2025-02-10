@@ -1,3 +1,4 @@
+const crypto=require('crypto')
 const { asyncHandler } = require("../../middleware/asyncHandler.middleware");
 const { USER } = require("../../model/user.model");
 const MingleError = require("../../utils/CustomError");
@@ -40,9 +41,6 @@ exports.userLogIn = asyncHandler(async (req,res) => {
       };
   
      let userData =  await USER.findOne(findQuery);
-     if(userData?.isGoogleLogin){
-      throw new MingleError("This email is registered with Google login. Please log in using Google.",403)
-     }
      if(userData && await userData.matchPassword(password)){
       return res.status(200).json({
             name:userData.name??'Guest User',
@@ -75,7 +73,10 @@ exports.googleLogin = asyncHandler(async (req,res) => {
 
   }
 
-  let createdUserData = await USER.create({googleId,name,email,emailVerified:true,image,isGoogleLogin:true})
+  let createdUserData = await USER.create({googleId,name,email,emailVerified:true,image,isGoogleLogin:true,password:crypto.randomBytes(14)
+    .toString('base64')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(0, 14)})
   res.status(200).json({
     name:createdUserData.name??'Guest User',
     userId:createdUserData.userId??createdUserData.googleId,

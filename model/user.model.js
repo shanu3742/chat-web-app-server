@@ -29,7 +29,7 @@ const userSchema = new  mongoose.Schema({
     },
     password:{
         type:String,
-        required: [function () { return !this.isGoogleLogin }, 'Please provide a password'],
+        required: [true, 'Please provide a password'],
         minLength:[8,'password must be more then 6 words'],
         maxLength:[15,'password must be less then 15 words']
     },
