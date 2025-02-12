@@ -11,6 +11,7 @@ const mongoose = require('mongoose')
 dotEnv.config()
 const app = express();
 const authRoutes = require('./routes/auth.routes');
+const otpRoutes = require('./routes/otp.routes');
 const { DB_CONFIG } = require('./config/db.config');
 const { limiter } = require('./rateLimiter');
 const { headerModifier } = require('./middleware/requestHeaders.middleware');
@@ -66,6 +67,7 @@ io.on('connection', (socket) => {
 
 //all routes
 app.use('/chat/api/v1/user',authRoutes)
+app.use('/chat/api/v1/user',otpRoutes)
 /**
  * error handlimg
  */
