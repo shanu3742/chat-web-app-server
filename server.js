@@ -17,6 +17,8 @@ const { headerModifier } = require('./middleware/requestHeaders.middleware');
 const { APP_CONFIG } = require('./config/app.config');
 const { sanitizeInput } = require('./middleware/requestSanitization.middleware');
 const { errorHandler } = require('./middleware/errorHandler.middleware');
+const RedisClient = require('./radish');
+
 
 
 
@@ -71,8 +73,10 @@ app.use(errorHandler)
 
 const PORT = APP_CONFIG.PORT;
 server.listen(PORT, () => {
-  console.log(DB_CONFIG)
+  
   console.log(`Server running on port ${PORT}`)
+
+ 
 });
 
   
