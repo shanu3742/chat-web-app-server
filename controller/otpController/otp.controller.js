@@ -3,6 +3,7 @@ const { asyncHandler } = require("../../middleware/asyncHandler.middleware");
 const RedisClient = require("../../radish");
 const { generateOTP } = require("../../utils/cryptoOtp");
 const { APP_CONFIG } = require('../../config/app.config');
+const { sendMail } = require('../../event/email.event');
 
 exports.requestOtp = asyncHandler(async (req, res) => {
     let email = req.body.email;
@@ -18,6 +19,7 @@ exports.requestOtp = asyncHandler(async (req, res) => {
     let redisKey = `OTP:${email}`; 
     await RedisClient.set(redisKey, hashedOtp, "EX", APP_CONFIG.OTP_EXPIRATION);
     // TODO: Send OTP via email (Implement email service)
+    sendMail(email,otp)
     res.status(200).send({
         message: "OTP sent successfully",
     });
