@@ -4,6 +4,7 @@ const RedisClient = require("../../radish");
 const { generateOTP } = require("../../utils/cryptoOtp");
 const { APP_CONFIG } = require('../../config/app.config');
 const { sendMail } = require('../../event/email.event');
+const MingleError = require('../../utils/CustomError');
 
 exports.requestOtp = asyncHandler(async (req, res) => {
     let email = req.body.email;
