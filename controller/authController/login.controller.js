@@ -1,85 +1,147 @@
-const crypto=require('crypto')
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const { asyncHandler } = require("../../middleware/asyncHandler.middleware");
 const { USER } = require("../../model/user.model");
 const MingleError = require("../../utils/CustomError");
-exports.userRegister = asyncHandler ( async (req,res) => {
-      let email = req.body.email;
-      let userId =req.body.userId;
-      let password=req.body.password;
-      if(!email || !userId || !password){
-        throw new MingleError("Please Provide All Require Field",400)
-      }     
-      let userData = await USER.create({
-        email,
-        userId,
-        password
-      })
-     
-      if(userData){
-        throw new MingleError("User Account Created",400)
-      }else{
-        throw new MingleError("Something Went Wrong",400)
-      }
-   
-})
+const Joi = require("joi");
+const { authErrorSchema } = require("../../error/auth.error.schema");
+const RedisClient = require("../../radish");
+exports.userRegister = asyncHandler(async (req, res) => {
+  let email = req.body.email;
+  let userId = req.body.userId;
+  let password = req.body.password;
+  if (!email || !userId || !password) {
+    throw new MingleError("Please Provide All Require Field", 400);
+  }
+  let userData = await USER.create({
+    email,
+    userId,
+    password,
+  });
 
-exports.userLogIn = asyncHandler(async (req,res) => {
-     let userId = req.body?.userId??'';
-     let email = req.body?.email??'';
-     let password = req.body.password;
+  if (userData) {
+    return res.status(201).json({
+      message: "User Account Created",
+    });
+  } else {
+    throw new MingleError("Something Went Wrong", 400);
+  }
+});
 
-     if(!userId  && !email){
-       throw new MingleError("Please Provide require field",400)
-     }
-    //  $options:'i' is used  to avoid case sensitive
-    let findQuery = {
-        $or: [
-          { userId: { $regex: userId, $options: 'i' } },
-          { email: { $regex: email, $options: 'i' } },
-          
-        ]
-      };
-  
-     let userData =  await USER.findOne(findQuery);
-     if(userData && await userData.matchPassword(password)){
-      return res.status(200).json({
-            name:userData.name??'Guest User',
-            userId:userData.userId,
-            email:userData.email
-        })
-     }else{
-      throw new MingleError("Invalid Credetial",401)
-     }
+exports.userLogIn = asyncHandler(async (req, res) => {
+  let userId = req.body?.userId ?? "";
+  let email = req.body?.email ?? "";
+  let password = req.body.password;
 
-})
+  let { error } = authErrorSchema.validate({
+    email: email,
+    password: password,
+  });
 
-exports.googleLogin = asyncHandler(async (req,res) => { 
-  const {uid:googleId,email,name,picture:image} = req.googleData;
+  if (error) {
+    throw new MingleError(error.details.map((e) => e.message).join(","), 400);
+  }
+  //  $options:'i' is used  to avoid case sensitive
+  let findQuery = {
+    $or: [
+      { userId: { $regex: userId, $options: "i" } },
+      { email: { $regex: email, $options: "i" } },
+    ],
+  };
+
+  let userData = await USER.findOne(findQuery);
+  if (userData && (await userData.matchPassword(password))) {
+    return res.status(200).json({
+      name: userData.name ?? "Guest User",
+      userId: userData.userId,
+      email: userData.email,
+    });
+  } else {
+    throw new MingleError("Invalid Credetial", 401);
+  }
+});
+
+exports.googleLogin = asyncHandler(async (req, res) => {
+  const { uid: googleId, email, name, picture: image } = req.googleData;
 
   let findQuery = {
     $or: [
-      { googleId: { $regex: googleId, $options: 'i' } },
-      { email: { $regex: email, $options: 'i' } },
-      
-    ]
+      { googleId: { $regex: googleId, $options: "i" } },
+      { email: { $regex: email, $options: "i" } },
+    ],
   };
-  let userData =  await USER.findOne(findQuery);
-  if(userData){
+  let userData = await USER.findOne(findQuery);
+  if (userData) {
     return res.status(200).json({
-      name:userData.name??'Guest User',
-      userId:userData.userId??userData.googleId,
-      email:userData.email
-    })
-
+      name: userData.name ?? "Guest User",
+      userId: userData.userId ?? userData.googleId,
+      email: userData.email,
+    });
   }
 
-  let createdUserData = await USER.create({googleId,name,email,emailVerified:true,image,isGoogleLogin:true,password:crypto.randomBytes(14)
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 14)})
+  let createdUserData = await USER.create({
+    googleId,
+    name,
+    email,
+    emailVerified: true,
+    image,
+    isGoogleLogin: true,
+    password: crypto
+      .randomBytes(14)
+      .toString("base64")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 14),
+  });
   res.status(200).json({
-    name:createdUserData.name??'Guest User',
-    userId:createdUserData.userId??createdUserData.googleId,
-    email:createdUserData.email
-  })
-})
+    name: createdUserData.name ?? "Guest User",
+    userId: createdUserData.userId ?? createdUserData.googleId,
+    email: createdUserData.email,
+  });
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  let email = req.body.email;
+  let password = req.body.password;
+  let otp = req.body.otp;
+  let { error } = authErrorSchema.validate({
+    email: email,
+    password: password,
+  });
+
+  if (error) {
+    throw new MingleError(error.details.map((e) => e.message).join(","), 400);
+  }
+
+  let redisKey = `OTP:${email}`;
+  let storedHashedOtp = await RedisClient.get(redisKey);
+  if (!storedHashedOtp) {
+    return res.status(400).send({
+      message: "OTP expired or does not exist",
+    });
+  }
+
+  let isValidOtp = await bcrypt.compare(otp, storedHashedOtp);
+  if (isValidOtp) {
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    let userData = await USER.findOneAndUpdate(
+      { email: email },
+      { password: hashedPassword },
+      { new: true }
+    );
+
+    if (userData) {
+      //after reseting the password delete the otp
+      await RedisClient.del(redisKey);
+      return res.status(200).json({
+        message: "User Password  Updated",
+      });
+    } else {
+      throw new MingleError("Something Went Wrong", 400);
+    }
+  } else {
+    throw new MingleError("OTP expired or does not exist", 400);
+  }
+});
