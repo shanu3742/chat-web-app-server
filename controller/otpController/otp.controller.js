@@ -19,7 +19,7 @@ exports.requestOtp = asyncHandler(async (req, res) => {
   let redisKey = `OTP:${email}`;
   await RedisClient.set(redisKey, hashedOtp, "EX", APP_CONFIG.OTP_EXPIRATION);
   // TODO: Send OTP via email (Implement email service)
-  sendMail(email, otp);
+  sendMail(email).sendOtp(otp);
   res.status(200).send({
     message: "OTP sent successfully",
   });

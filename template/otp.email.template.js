@@ -1,5 +1,5 @@
 exports.emailOtpTemplate = (otp) => {
-     return   `
+  return `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border-radius: 10px; border: 1px solid #e0e0e0;">
         <div style="text-align: center;">
             <h2 style="color: #4CAF50;">Mingle App</h2>
@@ -17,4 +17,22 @@ exports.emailOtpTemplate = (otp) => {
             © ${new Date().getFullYear()} Mingle App. All rights reserved.
         </footer>
     </div>`;
-}
+};
+
+exports.accountCreatedTemplate = (userId) => {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 20px; border-radius: 10px; border: 1px solid #e0e0e0;">
+        <div style="text-align: center;">
+            <h2 style="color: #4CAF50;">Mingle App</h2>
+            <p style="font-size: 16px; color: #555;">Hello ${userId},</p>
+            <p style="font-size: 16px; color: #555;">Your account has been successfully created.</p>
+            
+            <p style="font-size: 14px; color: #777;">You can now log in and start using Mingle App.</p>
+            <p style="font-size: 14px; color: #777;">If you did not sign up, please contact our support team immediately.</p>
+        </div>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="text-align: center; font-size: 12px; color: #aaa;">
+            © ${new Date().getFullYear()} Mingle App. All rights reserved.
+        </footer>
+    </div>`;
+};

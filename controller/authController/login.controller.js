@@ -3,15 +3,31 @@ const bcrypt = require("bcryptjs");
 const { asyncHandler } = require("../../middleware/asyncHandler.middleware");
 const { USER } = require("../../model/user.model");
 const MingleError = require("../../utils/CustomError");
-const Joi = require("joi");
 const { authErrorSchema } = require("../../error/auth.error.schema");
 const RedisClient = require("../../radish");
+const { sendMail } = require("../../event/email.event");
 exports.userRegister = asyncHandler(async (req, res) => {
   let email = req.body.email;
   let userId = req.body.userId;
   let password = req.body.password;
-  if (!email || !userId || !password) {
+  let clientOtp = req.body.otp;
+  if (!email || !userId || !password || !clientOtp) {
     throw new MingleError("Please Provide All Require Field", 400);
+  }
+
+  let redisKey = `OTP:${email}`;
+  let storedHashedOtp = await RedisClient.get(redisKey);
+
+  if (!storedHashedOtp) {
+    return res.status(400).send({
+      message: "OTP expired or does not exist",
+      verified: false,
+    });
+  }
+
+  let isValidOtp = await bcrypt.compare(clientOtp, storedHashedOtp);
+  if (!isValidOtp) {
+    throw new MingleError("Invalid OTP", 400);
   }
   let userData = await USER.create({
     email,
@@ -20,6 +36,8 @@ exports.userRegister = asyncHandler(async (req, res) => {
   });
 
   if (userData) {
+    //send mail
+    sendMail(email).registerAccount(userData.userId);
     return res.status(201).json({
       message: "User Account Created",
     });
