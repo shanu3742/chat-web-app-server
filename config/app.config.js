@@ -10,5 +10,7 @@ const APP_CONFIG = {
   RESET_PASSWORD_WINDOW_DURATION: 10 * 60 * 1000,
   RESET_RATE_LIMIT_MESSAGE:
     "Too many login attempts. Please try again after 10 minutes.",
+  ACCESS_TOKEN_EXPIRY: 30, //30m (in minute)
+  REFRESH_TOKEN_EXPIRY: 15, //15d (in day)
 };
 module.exports = { APP_CONFIG };

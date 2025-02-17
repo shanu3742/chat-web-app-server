@@ -8,6 +8,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const dotEnv = require("dotenv");
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
 dotEnv.config();
 const app = express();
 const authRoutes = require("./routes/auth.routes");
@@ -25,6 +26,7 @@ const RedisClient = require("./radish");
 //secure cors configuration
 app.use(headerModifier);
 app.use(sanitizeInput);
+app.use(cookieParser());
 //helemet is used to set various http headers to help us to secure   the app (xss cross site scripting clickjacking, csp content security policy)
 app.use(helmet());
 //more about hpp at - https://www.npmjs.com/package/hpp
@@ -32,7 +34,12 @@ app.use(hpp()); //HPP puts array parameters in req.query and/or req.body aside a
 app.use(sanitize());
 //limiter is used for dos (Denial of service ) and for brute force attack(multipule login try)
 app.use("/chat/api/v1", limiter);
-app.use(cors());
+app.use(
+  cors({
+    origin: APP_CONFIG.CLIENT_URL,
+    credentials: true,
+  })
+);
 //add middleware
 //used to parse incoming form dta and extend true is used to parse the nested form data
 app.use(express.urlencoded({ extended: true }));

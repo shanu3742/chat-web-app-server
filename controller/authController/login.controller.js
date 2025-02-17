@@ -6,6 +6,7 @@ const MingleError = require("../../utils/CustomError");
 const { authErrorSchema } = require("../../error/auth.error.schema");
 const RedisClient = require("../../radish");
 const { sendMail } = require("../../event/email.event");
+const { sendCookies } = require("../../event/cookies.event");
 exports.userRegister = asyncHandler(async (req, res) => {
   let email = req.body.email;
   let userId = req.body.userId;
@@ -36,6 +37,8 @@ exports.userRegister = asyncHandler(async (req, res) => {
   });
 
   if (userData) {
+    //delete the otp from storage
+    await RedisClient.del(redisKey);
     //send mail
     sendMail(email).registerAccount(userData.userId);
     return res.status(201).json({
@@ -69,6 +72,8 @@ exports.userLogIn = asyncHandler(async (req, res) => {
 
   let userData = await USER.findOne(findQuery);
   if (userData && (await userData.matchPassword(password))) {
+    //set cookies
+    sendCookies(res).authCookies(userData);
     return res.status(200).json({
       name: userData.name ?? "Guest User",
       userId: userData.userId,
@@ -89,6 +94,8 @@ exports.googleLogin = asyncHandler(async (req, res) => {
     ],
   };
   let userData = await USER.findOne(findQuery);
+  //set cookies
+  sendCookies(res).authCookies(userData);
   if (userData) {
     return res.status(200).json({
       name: userData.name ?? "Guest User",
